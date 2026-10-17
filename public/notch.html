@@ -9,6 +9,11 @@
 </head>
 <body>
   <main id="notch" class="notch">
+    <div id="bot-stage" class="bot-stage">
+      <canvas id="bot-canvas" aria-hidden="true"></canvas>
+      <div class="fallback-bot" aria-hidden="true"><div class="fallback-face"><i></i><i></i></div></div>
+      <button id="pet-toggle" aria-label="Talk to your hovering Jarvis bot" title="Click to talk to Jarvis"></button>
+    </div>
     <button id="toggle" class="notch-toggle" aria-expanded="false" aria-controls="panel" aria-label="Open Jarvis command panel">
       <span class="bot-face" aria-hidden="true"><i></i><i></i></span>
       <span class="notch-name">JARVIS</span>
@@ -17,12 +22,12 @@
     </button>
     <section id="panel" hidden>
       <div class="panel-heading"><div><span class="eyebrow">YOUR DESKTOP COMPANION</span><h1>What can I do for you?</h1></div><button id="collapse" class="icon-button" aria-label="Collapse Jarvis" title="Collapse · Esc">−</button></div>
-      <div id="conversation" class="conversation" role="log" aria-live="polite" aria-label="Conversation with Jarvis"><div class="reply"><span class="reply-name">JARVIS</span><p>I’m right here. Type a command or tap the microphone.</p></div></div>
+      <div id="conversation" class="conversation" role="log" aria-live="polite" aria-label="Conversation with Jarvis"><div class="reply"><span class="reply-name">JARVIS</span><p>I’m right here. Ask me anything, type a command, or tap the microphone.</p></div></div>
       <div class="quick-commands"><button data-command="help">What can you do?</button><button data-command="show notes">My notes</button><button data-command="set a timer for 5 minutes">5 min focus</button></div>
       <form id="notch-form"><label class="sr-only" for="command">Your command</label><input id="command" placeholder="Give me a command…" maxlength="2000" autocomplete="off"><button type="button" id="mic" class="icon-button" aria-label="Start voice input" title="Speak a command"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg></button><button id="send" type="submit" aria-label="Send command">↑</button></form>
       <p id="hint" class="hint">Enter to send <span>·</span> Esc to tuck me away</p>
       <div class="panel-bottom"><button id="settings-button" aria-expanded="false" aria-controls="settings">⚙ Settings</button><span id="activity">READY WHEN YOU ARE</span></div>
-      <section id="settings" hidden aria-label="Jarvis settings"><label class="setting"><span>Start with Windows<small>Appear as a notch when you sign in</small></span><input id="startup" type="checkbox" role="switch"></label><p id="startup-hint"></p><label class="setting"><span>Spoken replies</span><input id="voice" type="checkbox" role="switch"></label><button id="quit">Quit Jarvis</button></section>
+      <section id="settings" hidden aria-label="Jarvis settings"><label class="setting"><span>Start with Windows<small>Appear as a notch when you sign in</small></span><input id="startup" type="checkbox" role="switch"></label><p id="startup-hint"></p><label class="setting"><span>Spoken replies</span><input id="voice" type="checkbox" role="switch"></label><div class="ai-settings"><span class="eyebrow">LOCAL AI · OLLAMA</span><label for="ai-model">Model on your PC</label><select id="ai-model"><option value="">Check connection to list models</option></select><div class="ai-buttons"><button id="ai-connect" type="button">Check connection</button><button id="ai-install" type="button">Get Ollama ↗</button></div><p id="ai-status" role="status">Checking your local AI…</p><small>Install Ollama, then run <code>ollama pull llama3.2:3b</code> on your PC. Questions stay on this PC. Chat history is kept only until you quit.</small></div><button id="quit">Quit Jarvis</button></section>
     </section>
   </main>
   <script type="module" src="./notch.js"></script>

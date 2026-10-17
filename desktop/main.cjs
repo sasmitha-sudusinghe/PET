@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, screen, shell, Tray, Menu, nativeImage } = require('electron');
 const path = require('node:path');
-const { readFileSync } = require('node:fs');
+const { readFileSync, writeFileSync, mkdirSync } = require('node:fs');
+const { createOllamaClient, localModel } = require('./ollama.cjs');
+const ollama = createOllamaClient();
+let aiHistory = [], aiBusy = false;
 const { spawn } = require('node:child_process');
 const { notchBounds, safeWebsite } = require('./policy.cjs');
 let window, tray, expanded = false, speechProcess, quitting = false;
@@ -64,6 +67,47 @@ function handle(channel, callback) {
     return callback(...args);
   });
 }
+function readModel() {
+  try { const value = JSON.parse(readFileSync(path.join(app.getPath('userData'), 'ai-settings.json'), 'utf8')).model; return localModel(value) ? value : ''; }
+  catch { return ''; }
+}
+function saveModel(model) {
+  mkdirSync(app.getPath('userData'), { recursive: true });
+  writeFileSync(path.join(app.getPath('userData'), 'ai-settings.json'), JSON.stringify({ model }), 'utf8');
+}
+handle('notch:ai-models', async () => {
+  try {
+    const models = await ollama.models();
+    if (!models.length) return {ok:false,error:'Ollama is running, but no local model is installed. Run “ollama pull llama3.2:3b” on your PC, then check again.',models:[]};
+    const preferred = readModel();
+    const selectedModel = models.some(m => m.name === preferred) ? preferred : (models.find(m => m.name === 'llama3.2:3b') || [...models].sort((a,b)=>a.size-b.size)[0]).name;
+    saveModel(selectedModel); return {ok:true,models,selectedModel};
+  } catch (error) { return {ok:false,error:error.message,models:[]}; }
+});
+handle('notch:ai-model', async value => {
+  if (aiBusy) return {ok:false,error:'Wait for the current answer before changing models.'};
+  try {
+    const models = await ollama.models();
+    if (!models.some(m => m.name === value)) return {ok:false,error:'Select an installed local model.'};
+    saveModel(value); aiHistory = []; return {ok:true};
+  } catch (error) { return {ok:false,error:error.message}; }
+});
+handle('notch:ai-chat', async text => {
+  if (typeof text !== 'string' || !text.trim() || text.length > 2000) return {ok:false,error:'Please use a question under 2,000 characters.'};
+  if (aiBusy) return {ok:false,error:'I’m still thinking about your previous question.'};
+  aiBusy = true;
+  try {
+    const models = await ollama.models();
+    const model = readModel();
+    if (!models.some(m => m.name === model)) return {ok:false,error:'Open Settings and check the Ollama connection to select an installed model.'};
+    const messages = [...aiHistory, {role:'user',content:text.trim()}].slice(-15);
+    const answer = await ollama.chat(model,messages);
+    aiHistory = [...messages,{role:'assistant',content:answer}].slice(-16);
+    return {ok:true,text:answer,model};
+  } catch (error) { return {ok:false,error:error.message}; }
+  finally { aiBusy = false; }
+});
+
 handle('notch:expand', value => setExpanded(value));
 handle('notch:settings', settings);
 handle('notch:startup', value => {

@@ -4,8 +4,8 @@ import { createRequire } from 'node:module';
 const { notchBounds, safeWebsite } = createRequire(import.meta.url)('../desktop/policy.cjs');
 test('notch stays centered on primary work area and expands downward', () => {
   const display = { workArea: { x: -1920, y: 48, width: 1920, height: 1032 } };
-  assert.deepEqual(notchBounds(display, false), { x: -1062, y: 48, width: 204, height: 40 });
-  assert.deepEqual(notchBounds(display, true), { x: -1176, y: 48, width: 432, height: 464 });
+  assert.deepEqual(notchBounds(display, false), { x: -1062, y: 48, width: 204, height: 176 });
+  assert.deepEqual(notchBounds(display, true), { x: -1176, y: 48, width: 432, height: 620 });
 });
 test('notch fits a small display', () => {
   assert.deepEqual(notchBounds({ workArea: { x: 0, y: 0, width: 320, height: 300 } }, true), { x: 0, y: 0, width: 320, height: 300 });

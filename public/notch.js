@@ -1,14 +1,17 @@
 import { interpret } from './commands.js';
+import { startBot } from './bot3d.bundle.js';
 const $ = selector => document.querySelector(selector);
 const bridge = window.jarvisDesktop;
 const notch = $('#notch'), conversation = $('#conversation');
-let expanded = false, voice = false, listening = false, speechSession = 0, notes = [], browserRecognition;
+let expanded = false, voice = true, listening = false, speechSession = 0, notes = [], browserRecognition;
 try {
   const stored = JSON.parse(localStorage.getItem('jarvis-notes') || '[]');
   if (Array.isArray(stored)) notes = stored.filter(note => typeof note === 'string');
-  voice = localStorage.getItem('jarvis-desktop-voice') === 'true';
+  voice = localStorage.getItem('jarvis-desktop-voice') !== 'false';
 } catch { /* Storage may be unavailable; errors are shown when saving. */ }
 $('#voice').checked = voice;
+let thinking = false;
+startBot($('#bot-stage'), () => ({speaking:notch.classList.contains('speaking'),listening,thinking}));
 function append(text, user = false) {
   const row = document.createElement('div'); row.className = 'reply' + (user ? ' user' : '');
   const label = document.createElement('span'); label.className = 'reply-name'; label.textContent = user ? 'YOU' : 'JARVIS';
@@ -16,11 +19,15 @@ function append(text, user = false) {
   row.append(label, p); conversation.append(row); conversation.scrollTop = conversation.scrollHeight;
   return row;
 }
-function activity(text) { $('#activity').textContent = text; }
+function activity(text) { $('#activity').textContent = thinking ? 'THINKING…' : text; }
 function reply(text) {
   append(text);
   if (voice && 'speechSynthesis' in window) {
     speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text);
+    utterance.pitch = .7; utterance.rate = .92; utterance.volume = .85;
+    const voices = speechSynthesis.getVoices();
+    const chosen = voices.find(v => /david|mark|george|james/i.test(v.name) && /^en/i.test(v.lang)) || voices.find(v => v.lang === navigator.language);
+    if(chosen) utterance.voice = chosen;
     utterance.onstart = () => { notch.classList.add('speaking'); activity('SPEAKING'); };
     utterance.onend = utterance.onerror = () => { notch.classList.remove('speaking'); activity('READY WHEN YOU ARE'); };
     speechSynthesis.speak(utterance);
@@ -45,6 +52,7 @@ async function expand(value) {
   try { paintExpanded(bridge ? await bridge.setExpanded(value) : value); }
   catch { reply('Could not change the window size. Try opening Jarvis again.'); }
 }
+$('#pet-toggle').onclick = () => expand(!expanded);
 $('#toggle').onclick = () => expand(!expanded); $('#collapse').onclick = () => expand(false);
 if (bridge) bridge.onExpanded(paintExpanded);
 document.addEventListener('keydown', event => { if (event.key === 'Escape') {
@@ -58,9 +66,18 @@ function persist(next) {
 const timers = new Set();
 async function command(input) {
   const text = input.trim().slice(0, 2000); if (!text) return;
-  append(text, true); const action = interpret(text);
+  append(text, true); const action = interpret(text, {ai:true});
   switch (action.type) {
     case 'reply': reply(action.text); break;
+    case 'ai': {
+      if(!bridge){reply('Local AI is available in the Windows desktop app. Open its Settings to connect Ollama.');break;}
+      if(thinking){reply('I’m still thinking about your previous question.');break;}
+      thinking = true; activity('THINKING…');
+      try { const result = await bridge.askAI(action.text); if(result.ok) reply(result.text); else reply(result.error); }
+      catch { reply('Could not connect to local AI. Check Ollama in Settings.'); }
+      finally { thinking = false; activity('READY WHEN YOU ARE'); }
+      break;
+    }
     case 'note': if (persist([...notes, action.text])) reply('Saved: ' + action.text); break;
     case 'notes': reply(notes.length ? notes.map((note, i) => `${i + 1}. ${note}`).join('\n') : 'No notes yet. Try “note buy milk”.'); break;
     case 'clearNotes': if (persist([])) reply('Your notes have been cleared.'); break;
@@ -140,3 +157,24 @@ $('#quit').onclick = () => {
   if (timers.size && !window.confirm('Quit Jarvis? Active timers will stop.')) return;
   stopVoice(); if (bridge) bridge.quit(); else expand(false);
 };
+
+async function checkAI() {
+  $('#ai-connect').disabled = true; $('#ai-status').textContent = 'Looking for Ollama on this PC…';
+  try {
+    if(!bridge){ $('#ai-status').textContent = 'Local AI connects from the Windows desktop app.'; return; }
+    const result = await bridge.getAIModels();
+    $('#ai-model').replaceChildren();
+    if(!result.ok) { const option = document.createElement('option'); option.textContent = 'No local model connected'; option.value = ''; $('#ai-model').append(option); $('#ai-status').textContent = result.error; return; }
+    result.models.forEach(model => { const option = document.createElement('option'); option.value = model.name; option.textContent = model.name; $('#ai-model').append(option); });
+    $('#ai-model').value = result.selectedModel; $('#ai-status').textContent = 'Connected · ' + result.selectedModel + ' · running locally';
+  } catch { $('#ai-status').textContent = 'Could not check the AI connection. Open Ollama and try again.'; }
+  finally { $('#ai-connect').disabled = false; }
+}
+$('#ai-connect').onclick = checkAI;
+$('#ai-model').onchange = async () => {
+  if(!bridge || !$('#ai-model').value) return;
+  try { const result = await bridge.setAIModel($('#ai-model').value); $('#ai-status').textContent = result.ok ? 'Connected · ' + $('#ai-model').value : result.error; }
+  catch { $('#ai-status').textContent = 'Could not change models. Check the connection again.'; }
+};
+$('#ai-install').onclick = () => { if(bridge) bridge.openWebsite('https://ollama.com/download/windows').catch(()=>reply('Open ollama.com/download/windows in your browser.')); else window.open('https://ollama.com/download/windows','_blank','noopener,noreferrer'); };
+checkAI();

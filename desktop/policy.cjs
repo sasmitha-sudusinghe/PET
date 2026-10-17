@@ -1,5 +1,5 @@
-const COLLAPSED = { width: 204, height: 40 };
-const EXPANDED = { width: 432, height: 464 };
+const COLLAPSED = { width: 204, height: 176 };
+const EXPANDED = { width: 432, height: 620 };
 function notchBounds(display, expanded) {
   const area = display.workArea;
   const size = expanded ? EXPANDED : COLLAPSED;

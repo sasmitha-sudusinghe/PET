@@ -1,7 +1,7 @@
 {
   "name": "jarvis-pet",
   "productName": "Jarvis",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Your little desktop companion, one click from a command.",
   "author": "sasmitha-sudusinghe",
   "private": true,
@@ -12,7 +12,10 @@
     "start": "node server.js",
     "desktop": "electron .",
     "test": "node --test",
-    "dist:win": "electron-builder --win nsis zip --x64 --publish never"
+    "dist:win": "electron-builder --win nsis zip --x64 --publish never",
+    "build:bot": "node scripts/build-bot.mjs",
+    "predesktop": "npm run build:bot",
+    "predist:win": "npm run build:bot"
   },
   "build": {
     "appId": "com.sasmitha.jarvis",
@@ -45,6 +48,8 @@
   },
   "devDependencies": {
     "electron": "44.8.0",
-    "electron-builder": "26.15.3"
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
+    "three": "0.186.1"
   }
 }
