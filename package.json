@@ -1,1 +1,50 @@
-{"name":"jarvis-pet","version":"1.0.0","private":true,"type":"module","scripts":{"dev":"node server.js","start":"node server.js","test":"node --test"}}
+{
+  "name": "jarvis-pet",
+  "productName": "Jarvis",
+  "version": "1.1.0",
+  "description": "Your little desktop companion, one click from a command.",
+  "author": "sasmitha-sudusinghe",
+  "private": true,
+  "type": "module",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "desktop": "electron .",
+    "test": "node --test",
+    "dist:win": "electron-builder --win nsis zip --x64 --publish never"
+  },
+  "build": {
+    "appId": "com.sasmitha.jarvis",
+    "productName": "Jarvis",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "desktop/**/*",
+      "public/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "artifactName": "Jarvis-${version}-${arch}.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    }
+  },
+  "devDependencies": {
+    "electron": "44.8.0",
+    "electron-builder": "26.15.3"
+  }
+}
